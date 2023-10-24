@@ -255,16 +255,37 @@
 }
 \setpythontexcontext{}
 \@onlypreamble\setpythontexcontext
+\newcommand{\setlastgroupname}[1]{%
+    \xdef\lastgroupname{#1}%
+}
+\newcommand{\setlastgroupnameverb}[1]{%
+    \xdef\lastgroupnameverb{#1}%
+}
+\newcommand{\setlastgroupnamecons}[1]{%
+    \xdef\lastgroupnamecons{#1}%
+}
 \newcommand{\restartpythontexsession}[1]{%
     \Depythontex{cmd:restartpythontexsession:m:n}%
     \def\pytx@SetGroup{%
-        \edef\pytx@group{#1}%
+        \IfStrEq{\lastgroupname}{#1}{}{%
+            \setlastgroupname{#1}%
+            \setcounter{groupcounter}{0}%
+            \edef\pytx@group{#1}%
+        }
     }%
     \def\pytx@SetGroupVerb{%
-        \edef\pytx@group{#1verb}%
+        \IfStrEq{\lastgroupnameverb}{#1verb}{}{%
+            \setlastgroupnameverb{#1verb}%
+            \setcounter{groupcounter}{0}%
+            \edef\pytx@group{#1verb}%
+        }%
     }%
     \def\pytx@SetGroupCons{%
-        \edef\pytx@group{#1cons}%
+        \IfStrEq{\lastgroupnameverb}{#1verb}{}{%
+            \setlastgroupnamecons{#1cons}%
+            \setcounter{groupcounter}{0}%
+            \edef\pytx@group{#1cons}%
+        }%
     }%
     \AtBeginDocument{%
         \pytx@SetGroup
@@ -280,6 +301,28 @@
 }
 \@onlypreamble\restartpythontexsession
 \restartpythontexsession{default}
+\newcounter{groupcounter}
+\setcounter{groupcounter}{0}
+\newcommand{\restartpythontexsessionnow}[]{%
+    \Depythontex{cmd:restartpythontexsessionnow:m:n}%
+    \stepcounter{groupcounter}%
+    \gdef\newgroupname{manual_group\arabic{groupcounter}}%
+}
+\newcommand{\pytx@SetGroupNow}{%
+    \ifnum\value{groupcounter}>0
+        \edef\pytx@group{\newgroupname}%
+    \fi
+}
+\newcommand{\pytx@SetGroupNowVerb}{%
+    \ifnum\value{groupcounter}>0
+        \edef\pytx@group{\newgroupnameverb}%
+    \fi
+}
+\newcommand{\pytx@SetGroupNowCons}{%
+    \ifnum\value{groupcounter}>0
+        \edef\pytx@group{\newgroupnamecons}%
+    \fi
+}
 \StrSubstitute{\jobname}{ }{-}[\pytx@jobname]
 \StrSubstitute{\pytx@jobname}{"}{}[\pytx@jobname]
 \StrSubstitute{\pytx@jobname}{*}{-}[\pytx@jobname]
@@ -737,6 +780,7 @@
         \edef\pytx@cmd{b}%
         \pytx@SetContext
         \pytx@SetGroup
+        \pytx@SetGroupNow
         \let\pytx@InlineShow\pytx@InlineShowFV
         \let\pytx@InlineSave\pytx@InlineSaveCode
         \let\pytx@InlinePrint\@empty
@@ -749,6 +793,7 @@
         \edef\pytx@cmd{b}%
         \pytx@SetContext
         \pytx@SetGroup
+        \pytx@SetGroupNow
         \let\pytx@InlineShow\pytx@InlineShowPyg
         \let\pytx@InlineSave\pytx@InlineSaveCode
         \let\pytx@InlinePrint\@empty
@@ -763,6 +808,7 @@
         \edef\pytx@cmd{v}%
         \pytx@SetContext
         \pytx@SetGroupVerb
+        \pytx@SetGroupNow
         \let\pytx@InlineShow\pytx@InlineShowFV
         \let\pytx@InlineSave\@empty
         \let\pytx@InlinePrint\@empty
@@ -775,6 +821,7 @@
         \edef\pytx@cmd{v}%
         \pytx@SetContext
         \pytx@SetGroupVerb
+        \pytx@SetGroupNow
         \let\pytx@InlineShow\pytx@InlineShowPyg
         \let\pytx@InlineSave\pytx@InlineSaveCode
         \let\pytx@InlinePrint\@empty
@@ -788,6 +835,7 @@
         \edef\pytx@cmd{c}%
         \pytx@SetContext
         \pytx@SetGroup
+        \pytx@SetGroupNow
         \let\pytx@InlineShow\@empty
         \let\pytx@InlineSave\pytx@InlineSaveCode
         \let\pytx@InlinePrint\pytx@InlineAutoprint
@@ -802,6 +850,7 @@
         \edef\pytx@cmd{s}%
         \pytx@SetContext
         \pytx@SetGroup
+        \pytx@SetGroupNow
         \let\pytx@InlineShow\@empty
         \let\pytx@InlineSave\pytx@InlineSaveCode
         \let\pytx@InlinePrint\pytx@InlineAlwaysprint
@@ -816,6 +865,7 @@
         \edef\pytx@cmd{i}%
         \pytx@SetContext
         \pytx@SetGroup
+        \pytx@SetGroupNow
         \let\pytx@InlineShow\@empty
         \let\pytx@InlineSave\pytx@InlineSaveCode
         \let\pytx@InlinePrint\pytx@InlineMacroprint
@@ -830,6 +880,7 @@
         \edef\pytx@cmd{i}%
         \pytx@SetContext
         \pytx@SetGroup
+        \pytx@SetGroupNow
         \let\pytx@InlineShow\@empty
         \let\pytx@InlineSave\pytx@InlineSaveCode
         \let\pytx@InlinePrint\pytx@InlineMacroprintFV
@@ -897,6 +948,7 @@
         \edef\pytx@cmd{block}%
         \pytx@SetContext
         \pytx@SetGroup
+        \pytx@SetGroupNow
         \begingroup
         \obeylines
         \@ifnextchar[{\endgroup\pytx@BeginBlockEnvFV}{\endgroup\pytx@BeginBlockEnvFV[]}%
@@ -931,6 +983,7 @@
         \edef\pytx@cmd{verbatim}%
         \pytx@SetContext
         \pytx@SetGroupVerb
+        \pytx@SetGroupNow
         \begingroup
         \obeylines
         \@ifnextchar[{\endgroup\pytx@BeginVerbEnvFV}{\endgroup\pytx@BeginVerbEnvFV[]}%
@@ -960,7 +1013,9 @@
         \edef\pytx@cmd{#2}%
         \pytx@SetContext
         \ifstrequal{#2}{block}{\pytx@SetGroup}{}
+        \ifstrequal{#2}{block}{\pytx@SetGroupNow}{}
         \ifstrequal{#2}{verbatim}{\pytx@SetGroupVerb}{}
+        \ifstrequal{#2}{verbatim}{\pytx@SetGroupNow}{}
         \begingroup
         \obeylines
         \@ifnextchar[{\endgroup\pytx@BeginEnvPyg}{\endgroup\pytx@BeginEnvPyg[]}%
@@ -1031,6 +1086,7 @@
         \edef\pytx@cmd{code}%
         \pytx@SetContext
         \pytx@SetGroup
+        \pytx@SetGroupNow
         \begingroup
         \obeylines
         \@ifnextchar[{\endgroup\pytx@BeginCodeEnv}{\endgroup\pytx@BeginCodeEnv[]}%
@@ -1103,6 +1159,7 @@
         \edef\pytx@cmd{sub}%
         \pytx@SetContext
         \pytx@SetGroup
+        \pytx@SetGroupNow
         \begingroup
         \obeylines
         \@ifnextchar[{\endgroup\pytx@BeginCodeEnv}{\endgroup\pytx@BeginCodeEnv[]}%
@@ -1128,6 +1185,7 @@
         \edef\pytx@cmd{console}%
         \pytx@SetContext
         \pytx@SetGroup
+        \pytx@SetGroupNow
         \begingroup
         \obeylines
         \@ifnextchar[{\endgroup\pytx@BeginConsEnvFV}{\endgroup\pytx@BeginConsEnvFV[]}%
@@ -1180,6 +1238,7 @@
         \edef\pytx@cmd{console}%
         \pytx@SetContext
         \pytx@SetGroup
+        \pytx@SetGroupNow
         \begingroup
         \obeylines
         \@ifnextchar[{\endgroup\pytx@BeginConsEnvFV}{\endgroup\pytx@BeginConsEnvFV[]}%
@@ -1410,6 +1469,7 @@
         \edef\pytx@cmd{v}%
         \pytx@SetContext
         \pytx@SetGroupVerb
+        \pytx@SetGroupNow
         \let\pytx@InlineShow\pytx@InlineShowFV
         \let\pytx@InlineSave\@empty
         \let\pytx@InlinePrint\@empty
@@ -1423,6 +1483,7 @@
         \edef\pytx@cmd{v}%
         \pytx@SetContext
         \pytx@SetGroupVerb
+        \pytx@SetGroupNow
         \let\pytx@InlineShow\pytx@InlineShowPyg
         \let\pytx@InlineSave\pytx@InlineSaveCode
         \let\pytx@InlinePrint\@empty
@@ -1435,6 +1496,7 @@
         \VerbatimEnvironment
         \pytx@SetContext
         \pytx@SetGroupVerb
+        \pytx@SetGroupNow
         \begingroup
         \obeylines
         \@ifnextchar[{\endgroup\pytx@BEPygmentsFV}{\endgroup\pytx@BEPygmentsFV[]}%
@@ -1473,6 +1535,7 @@
         \VerbatimEnvironment
         \pytx@SetContext
         \pytx@SetGroupVerb
+        \pytx@SetGroupNowVerb
         \begingroup
         \obeylines
         \@ifnextchar[{\endgroup\pytx@BEPygmentsPyg}{\endgroup\pytx@BEPygmentsPyg[]}%
@@ -1526,6 +1589,7 @@
         \edef\pytx@cmd{verbatim}%
         \pytx@SetContext
         \pytx@SetGroupVerb
+        \pytx@SetGroupNowVerb
         \edef\pytx@session{EXT:##3}%
         \pytx@CheckPygmentsInit{##2}%
         \xdef\pytx@counter{pytx@\pytx@type @\pytx@session @\pytx@group}%
@@ -1550,6 +1614,7 @@
         \edef\pytx@cmd{verbatim}%
         \pytx@SetContext
         \pytx@SetGroupVerb
+        \pytx@SetGroupNowVerb
         \def\pytx@argspprint{##1}%
         \edef\pytx@session{EXT:##3}%
         \pytx@CheckPygmentsInit{##2}%
@@ -1669,6 +1734,7 @@
         \edef\pytx@cmd{verb}%
         \pytx@SetContext
         \pytx@SetGroupVerb
+        \pytx@SetGroupNowVerb
         \begingroup
         \obeylines
         \@ifnextchar[{\endgroup\pytx@BeginVerbEnvFV}{\endgroup\pytx@BeginVerbEnvFV[]}%
@@ -1687,7 +1753,9 @@
         \edef\pytx@cmd{#2}%
         \pytx@SetContext
         \ifstrequal{#2}{block}{\pytx@SetGroup}{}
+        \ifstrequal{#2}{block}{\pytx@SetGroupNow}{}
         \ifstrequal{#2}{verb}{\pytx@SetGroupVerb}{}
+        \ifstrequal{#2}{verb}{\pytx@SetGroupNowVerb}{}
         \begingroup
         \obeylines
         \@ifnextchar[{\endgroup\pytx@BeginEnvPyg}{\endgroup\pytx@BeginEnvPyg[]}%

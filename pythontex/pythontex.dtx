@@ -1369,6 +1369,14 @@
 %
 % This command can only be used in the preamble.
 %
+% \DescribeMacro{\restartpythontexsessionnow}
+%
+% This macro subdivides all pythontex sessions immediately.
+%
+% When calling this command all pythontex sessions will be restarted immediately even if \textbf{counter values} has not updated. All sessions from then on will be run in a new file independent of the previous session code. This command is useful if you want to rset sessions without having to update the \textbf{counter values}.
+%
+% |\restartpythontexsession| still functions as expected. If it set the sessions will still be subdivided when the \textbf{counter values} change.
+%
 % \DescribeMacro{\setpythontexoutputdir\marg{output~directory}}
 %
 % By default, \pytex\ saves all temporary files and automatically generated content in a directory called |pythontex-files-|\meta{sanitized jobname}, where \meta{sanitized jobname} is just |\jobname| with any space characters or asterisks replaced with hyphens.  This directory will be created by |pythontex.py|.  If we wish to specify another directory (for example, if |\jobname| is long and complex, and there is no danger of two files trying to use the same directory), then we can use the |\setpythontexoutputdir| macro to redefine the output directory.\footnote{In the rare event that both |\string\setpythontexoutputdir| is used and |\string\printpythontex| is needed in the preamble, |\string\setpythontexoutputdir| must be used first, so that |\string\printpythontex| will know where to look for output.}
@@ -2400,6 +2408,17 @@
 %
 % ``Groups'' provide a solution to this problem.  Each session is subdivided based on groups behind the scenes.  By default, this changes nothing, because each session is put into a single default group.  But the user can redefine groups based on chapter, section, and other counters, so that sessions are automatically subdivided accordingly.  Note that there is no continuity between sessions thus subdivided.  For example, if you set groups to change between chapters, there will be no continuity between the code of those chapters, even if all the code is within the same named session.  If you require continuity, the groups approach is probably not appropriate.  You could consider saving results at the end of one chapter and loading them at the beginning of the next, but that introduces additional issues in keeping all code properly synchronized, since code is executed only when it changes, not when any data it loads may have changed.
 %
+% \begin{macrocode}
+\newcommand{\setlastgroupname}[1]{%
+    \xdef\lastgroupname{#1}%
+}
+\newcommand{\setlastgroupnameverb}[1]{%
+    \xdef\lastgroupnameverb{#1}%
+}
+\newcommand{\setlastgroupnamecons}[1]{%
+    \xdef\lastgroupnamecons{#1}%
+}
+% \end{macrocode}
 %
 % \begin{macro}{\restartpythontexsession}
 % \begin{macro}{\pytx@group}
@@ -2409,17 +2428,29 @@
 % We begin by creating the |\restartpythontexsession| macro.  It creates the |\pytx@SetGroup*| macros, which create |\pytx@group|, in which the expanded context information is stored.  The context should only be defined in the preamble, so that it is consistent throughout the document.  Note that groups should be defined so that they will only contain characters that are valid in file names, because groups are used in naming temporary files.  It is also a good idea to avoid using periods, since \LaTeX\ input of file names containing multiple periods can sometimes be tricky.  For best results, use A-Z, a-z, 0-9, and the hyphen and underscore characters to define groups.  If groups contain numbers from multiple sources (for example, chapter and section), the numbers should be separated by a non-numeric character to prevent unexpected collisions (for example, distinguishing chapter 1-11 from 11-1).  For example, |\restartpythontexsession{\arabic{chapter}-\arabic{section}}| could be a good approach.
 %
 % Three forms of |\pytx@SetGroup*| are provided.  |\pytx@SetGroup| is for general code use.  |\pytx@SetGroupVerb| is for use in verbatim contexts.  It splits verbatim content off into its own group.  That way, verbatim content does not affect the instance numbers of code that is actually executed.  This prevents code from needing to be run every time verbatim content is added or removed; code is only executed when it is actually changed.  |pytx@SetGroupCons| is for |console| environments.  It separate console content from executed code and from verbatim content, again for efficiency reasons.
+% To support functionality of |\restartpythontexsessionnow| we need to alter the definition of |\pytx@SetGroup*|. |\restartpythontexsessionnow| will overwrite the group set by this command to allow restarting between |counter variables|. To ensure this command still functions it will check if a change in the |counter variable| is present by storing its last group name. If it has changed it will reset the override of |\restartpythontexsessionnow|. More on this command can be found in the documentation of |\restartpythontexsessionnow|.
 %    \begin{macrocode}
 \newcommand{\restartpythontexsession}[1]{%
     \Depythontex{cmd:restartpythontexsession:m:n}%
     \def\pytx@SetGroup{%
-        \edef\pytx@group{#1}%
+        \IfStrEq{\lastgroupname}{#1}{}{%
+            \setlastgroupname{#1}%
+            \setcounter{groupcounter}{0}%
+            \edef\pytx@group{#1}%
+        }
     }%
     \def\pytx@SetGroupVerb{%
-        \edef\pytx@group{#1verb}%
+        \IfStrEq{\lastgroupnameverb}{#1verb}{}{%
+            \setlastgroupnameverb{#1verb}%
+            \setcounter{groupcounter}{0}%
+            \edef\pytx@group{#1verb}%
     }%
     \def\pytx@SetGroupCons{%
-        \edef\pytx@group{#1cons}%
+        \IfStrEq{\lastgroupnameverb}{#1verb}{}{%
+            \setlastgroupnamecons{#1cons}%
+            \setcounter{groupcounter}{0}%
+            \edef\pytx@group{#1cons}%
+        }%
     }%
     \AtBeginDocument{%
         \pytx@SetGroup
@@ -2441,7 +2472,37 @@
 \@onlypreamble\restartpythontexsession
 \restartpythontexsession{default}
 %    \end{macrocode}
-% 
+%
+% \begin{macro}{\restartpythontexsessionnow}
+% We also provide a macro |\restartpythontexsessionnow| that can be used to restart the session immediately, rather than waiting until |\restartpythontexsession| provides a new group.
+% Note that this sets a new group for all pythontex sessions. Therefor every session will be restarted.
+% This command is compatible with |\restartpythontexsession|, both can be used in the same document. This command will override the group set by |\restartpythontexsession| until the next |\restartpythontexsession| is called. This is done by storing the last group name and checking if it has changed. If it has changed the override is reset.
+% To allow multiple resets a counter keeps track of the number of resets. This counter is used to create a unique group name for every reset. This is done by appending the counter to the group name. This way every reset will have a unique group name.
+%    \begin{macrocode}
+\newcounter{groupcounter}
+\setcounter{groupcounter}{0}
+\newcommand{\restartpythontexsessionnow}[]{%
+    \Depythontex{cmd:restartpythontexsessionnow:m:n}%
+    \stepcounter{groupcounter}%
+    \gdef\newgroupname{manual_group\arabic{groupcounter}}%
+}
+\newcommand{\pytx@SetGroupNow}{%
+    \ifnum\value{groupcounter}>0
+        \edef\pytx@group{\newgroupname}%
+    \fi
+}
+\newcommand{\pytx@SetGroupNowVerb}{%
+    \ifnum\value{groupcounter}>0
+        \edef\pytx@group{\newgroupnameverb}%
+    \fi
+}
+\newcommand{\pytx@SetGroupNowCons}{%
+    \ifnum\value{groupcounter}>0
+        \edef\pytx@group{\newgroupnamecons}%
+    \fi
+}
+% \end{macrocode}
+%
 % \subsubsection{File input and output}
 %
 % \begin{macro}{\pytx@jobname}
